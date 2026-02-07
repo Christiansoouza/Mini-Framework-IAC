@@ -1,0 +1,16 @@
+[project]
+name = "ecs-constructor"
+version = "1.0.0"
+description = "scripts especializados na criação do recurso de ecs na aws"
+authors = [
+    {name = "Christian",email = "christian.silva@dominitax.com"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "boto3 (>=1.42.43,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

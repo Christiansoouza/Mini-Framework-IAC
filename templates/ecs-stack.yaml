@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'ECS Task Definition to deploy a sample app'
+Parameters:
+  MaxTaskCount:
+    Type: Number
+    Default: 4
+    Description: Número máximo de tasks Fargate
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID para o ECS Service
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Lista de Subnets para o ECS Service
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: Lista de Security Groups para o ECS Service
+  ContainerImage:
+    Type: String
+    Default: 'public.ecr.aws/docker/library/httpd:2.4'
+    Description: The container image to use for the task
+  ContainerCpu:
+    Type: Number
+    Default: 2048
+    Description: The number of CPU units to reserve for the container
+  ContainerMemory:
+    Type: Number
+    Default: 2048
+    Description: The amount of memory (in MiB) to reserve for the container
+  TaskFamily:
+    Type: String
+    Default: 'task-definition-cfn'
+    Description: The name of the task definition family
+  ContainerName:
+    Type: String
+    Default: 'my-container'
+    Description: The name of the container
+  ContainerPort:
+    Type: Number
+    Default: 80
+    Description: The port number on the container
+  HostPort:
+    Type: Number
+    Default: 80
+    Description: The port number on the host
+  ExecutionRoleArn:
+    Type: String
+    Default: 'arn:aws:iam::111122223333:role/ecsTaskExecutionRole'
+    Description: The ARN of the task execution role
+  LogGroup:
+    Type: String
+    Default: '/ecs/fargate-task-definition'
+    Description: The CloudWatch log group for container logs
+  Environment:
+    Type: String
+    Default: 'prod'
+    AllowedValues:
+      - prod
+      - hml
+    Description: Ambiente (prod ou hml)
+  NetworkMode:
+    Type: String
+    Default: 'awsvpc'
+    Description: The Docker networking mode to use
+    AllowedValues: ['awsvpc', 'bridge', 'host', 'none'] 
+  OperatingSystemFamily:
+    Type: String
+    Default: 'LINUX'
+    Description: The operating system for the task
+    AllowedValues: ['LINUX', 'WINDOWS_SERVER_2019_FULL', 'WINDOWS_SERVER_2019_CORE', 'WINDOWS_SERVER_2022_FULL', 'WINDOWS_SERVER_2022_CORE']
+Resources:
+  #Auto Scaling Role para o ECS Service
+  ECSServiceAutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+
+  ECSServiceScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref MaxTaskCount
+      MinCapacity: 1
+      ResourceId: !Sub 'service/${ECSCluster}/${ECSService}'
+      RoleARN: !GetAtt ECSServiceAutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ECSServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ECSServiceCpuScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ECSServiceScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 80.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+
+  # Ponto de entrada do ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref SubnetIds
+          SecurityGroups: !Ref SecurityGroupIds
+          AssignPublicIp: ENABLED
+          
+  #Definição do cluster        
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+        ClusterName: !Sub 'ecs-cluster-${Environment}'
+
+  #Definição da task
+  ECSTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+        Family: !Sub '${TaskFamily}-${Environment}'
+        Cpu: !Ref ContainerCpu
+        Memory: !Ref ContainerMemory
+        NetworkMode: !Ref NetworkMode
+        RequiresCompatibilities:
+          - FARGATE
+        ExecutionRoleArn: !Ref ExecutionRoleArn
+        RuntimePlatform:
+          OperatingSystemFamily: !Ref OperatingSystemFamily
+        ContainerDefinitions:
+          - Name: !Ref ContainerName
+            Image: !Ref ContainerImage
+            Essential: true
+            PortMappings:
+              - ContainerPort: !Ref ContainerPort
+                HostPort: !Ref HostPort
+                Protocol: tcp
+            Environment:
+              - Name: MB_DB_TYPE
+                Value: postgres
+              - Name: MB_DB_HOST
+                Value: <RDS_ENDPOINT>
+              - Name: MB_DB_PORT
+                Value: '5432'
+              - Name: MB_DB_USER
+                Value: <RDS_USER>
+              - Name: MB_DB_PASS
+                Value: <RDS_PASSWORD>
+              - Name: MB_DB_DBNAME
+                Value: <RDS_DBNAME>
+            LogConfiguration:
+              LogDriver: awslogs
+              Options:
+                  awslogs-group: !Sub '${LogGroup}-${Environment}'
+                  awslogs-region: !Ref AWS::Region
+                  awslogs-stream-prefix: metabase
+Outputs:
+  TaskDefinitionArn:
+    Description: The ARN of the created task definition
+    Value: !Ref ECSTaskDefinition

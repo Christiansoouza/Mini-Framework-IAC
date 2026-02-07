@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: RDS PostgreSQL Instance (CloudFormation)
+
+# Parâmetros para customização
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: Classe da instância RDS
+  DBName:
+    Type: String
+    Default: mydb
+    Description: Nome do banco de dados
+  DBUser:
+    Type: String
+    Default: admin
+    Description: Usuário master
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Default: adminpassword
+    Description: Senha master
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: Armazenamento (GB)
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC para o RDS
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets privadas para o RDS
+
+Resources:
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable access for ECS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.0.0.0/16 # Ajuste conforme sua arquitetura
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds: !Ref SubnetIds
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: postgres
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUser
+      MasterUserPassword: !Ref DBPassword
+      AllocatedStorage: !Ref DBAllocatedStorage
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      StorageEncrypted: true
+
+Outputs:
+  RDSInstanceEndpoint:
+    Description: Endpoint do banco de dados
+    Value: !GetAtt RDSInstance.Endpoint.Address
+  RDSInstancePort:
+    Description: Porta do banco de dados
+    Value: !GetAtt RDSInstance.Endpoint.Port
+  RDSSecurityGroupId:
+    Description: ID do Security Group do RDS
+    Value: !Ref RDSSecurityGroup
