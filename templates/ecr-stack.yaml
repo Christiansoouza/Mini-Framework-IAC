@@ -1,24 +1,36 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ECR Repository for application
+
+Parameters:
+  RepositoryName:
+    Type: String
+    Default: my-app-repo
+    Description: Nome do repositório ECR
+
 Resources:
   ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: my-app-repo
+      RepositoryName: !Ref RepositoryName
       LifecyclePolicy:
         LifecyclePolicyText: |
           {
             "rules": [
               {
                 "rulePriority": 1,
-                "description": "Expire images older than 30 days",
+                "description": "Expire images older than 60 days",
                 "selection": {
                   "tagStatus": "any",
                   "countType": "sinceImagePushed",
                   "countUnit": "days",
-                  "countNumber": 30
+                  "countNumber": 60
                 },
                 "action": { "type": "expire" }
               }
             ]
           }
+
+Outputs:
+  RepositoryUri:
+    Description: URI do repositório ECR
+    Value: !GetAtt ECRRepository.RepositoryUri

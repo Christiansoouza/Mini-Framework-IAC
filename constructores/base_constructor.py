@@ -33,10 +33,15 @@ class BaseConstructor(ABC):
 
     def __stack_exists(self) -> bool:
         try:
-            self.cf_client.describe_stacks(StackName=self.name)
+            resp = self.cf_client.describe_stacks(StackName=self.name)
+            status = resp["Stacks"][0]["StackStatus"]
+            if status == "DELETE_COMPLETE":
+                return False
             return True
-        except ClientError:
-            return False
+        except ClientError as e:
+            if "does not exist" in str(e):
+                return False
+            raise
 
     def __get_outputs(self) -> dict:
         resp = self.cf_client.describe_stacks(StackName=self.name)

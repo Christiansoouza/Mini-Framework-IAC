@@ -19,10 +19,10 @@ desired_count = 1
 # ecs.plan()
 # pass
 vpc = VpcConstructor(
-    name="vpc-stack-preview",
+    name="vpc-stack-preview2",
     profile=profile,
     region=region,
 )
 
-vpc.destroy()
+vpc.deploy()
 pass

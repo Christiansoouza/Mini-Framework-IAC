@@ -17,18 +17,15 @@ class VpcConstructor(BaseConstructor):
         name: str,
         profile: str,
         region: str,
+        parameters: dict = {},
     ):
         print(f"Inicializando construtor VPC: {name} na região {region} com perfil {profile}")
         template = read_template(TEMPLATE_PATH)
 
-
-        params = None
-
-
         super().__init__(
             name=name,
             template_body=template,
-            parameters=params,
+            parameters=parameters,
             profile=profile,
             region=region,
         )
