@@ -5,12 +5,42 @@ from botocore.exceptions import ClientError
 
 
 class BaseConstructor(ABC):
-    """Classe base para construtores de recursos AWS via CloudFormation"""
+    """
+    Classe base para construtores de recursos AWS via CloudFormation.
 
+    Responsabilidades:
+    - Gerencia criação, atualização e destruição de stacks CloudFormation.
+    - Fornece interface comum para construtores específicos (VPC, ECR, ECS, RDS, etc).
+    - Permite planejamento (plan), deploy, verificação de status, exportação de outputs e destruição de stacks.
+
+    Métodos principais:
+    - plan(): Exibe o plano de recursos a serem criados/alterados (simulação).
+    - deploy(): Cria e executa ChangeSet, aplicando o template.
+    - destroy(): Remove o stack e todos os recursos provisionados.
+    - destroy_plan(): Lista recursos que serão removidos.
+    - output(): Retorna informações relevantes do recurso criado (deve ser implementado nas subclasses).
+    - export_outputs_json(): Exporta outputs para JSON (deve ser implementado nas subclasses).
+
+    Parâmetros aceitos no construtor:
+    - name: Nome do stack CloudFormation.
+    - template_body: Template YAML/JSON do recurso.
+    - parameters: Dicionário de parâmetros do template.
+    - profile: Nome do perfil AWS (para autenticação).
+    - region: Região AWS.
+
+    Helpers:
+    - _stack_exists(): Verifica existência do stack e trata estados inconsistentes.
+    - _get_outputs(): Retorna outputs do stack.
+    - __wait_changeset(): Aguarda execução de ChangeSet.
+    - __print_changeset(): Exibe plano de mudanças.
+
+    Uso:
+    Herde esta classe para criar construtores específicos de cada recurso, implementando os métodos abstratos.
+    """
     def __init__(
-        self,name: str,
-        template_body: str, parameters: dict | None = None,
-        profile: str | None = None, region: str | None = None,
+        self, name: str,
+        template_body: str, profile: str, 
+        region: str, parameters: dict = {},
     ):
         
         self.name = name
@@ -32,6 +62,9 @@ class BaseConstructor(ABC):
     # =========================
 
     def __stack_exists(self) -> bool:
+        """Verifica se a stack existe, 
+        	tratando estados inconsistentes como inexistente para permitir re-criação automática.
+        """
         try:
             resp = self.cf_client.describe_stacks(StackName=self.name)
             
@@ -39,6 +72,7 @@ class BaseConstructor(ABC):
             status = resp["Stacks"][0]["StackStatus"]
             if status == "DELETE_COMPLETE":
                 return False
+            
             # Tratar stacks em REVIEW_IN_PROGRESS como inexistentes para permitir re-criação automática
             if status == "REVIEW_IN_PROGRESS":
                 print("⚠️ Stack em REVIEW_IN_PROGRESS detectado. Excluindo automaticamente...")
@@ -52,6 +86,7 @@ class BaseConstructor(ABC):
             raise
 
     def _get_outputs(self) -> dict:
+        """"Retorna os outputs do stack como um dicionário simples {OutputKey: OutputValue}"""
         resp = self.cf_client.describe_stacks(StackName=self.name)
         outputs = resp["Stacks"][0].get("Outputs", [])
 
@@ -70,6 +105,7 @@ class BaseConstructor(ABC):
             status = resp["Status"]
             reason = resp.get("StatusReason", "")
 
+            print(f"⏳ Aguardando Change Set... Status: {status} | Reason: {reason}")
             if status == "CREATE_COMPLETE":
                 return resp
 
@@ -84,6 +120,7 @@ class BaseConstructor(ABC):
             time.sleep(3)
             
     def __print_changeset(self, changeset, show_replacement: bool = True):
+        """Printa o plano de mudanças de forma legível"""
         for change in changeset["Changes"]:
             r = change["ResourceChange"]
 
@@ -145,7 +182,7 @@ class BaseConstructor(ABC):
         return True
 
     def deploy(self):
-        """Aplica o Change Set"""
+        """Aplica o Change Set criando ou atualizando o stack conforme necessário e aguarda a conclusão do deploy"""
         change_set_name, change_set_type = self.plan()
 
         if not change_set_name:
@@ -179,7 +216,9 @@ class BaseConstructor(ABC):
         if not plan:
             print("🚫 Nada para destruir")
             return
+        
         input("Pressione Enter para confirmar a destruição ou CTRL+Z para cancelar...")
+        
         print("\n🔥 Executando destruição")
         self.cf_client.delete_stack(StackName=self.name)
         waiter = self.cf_client.get_waiter("stack_delete_complete")

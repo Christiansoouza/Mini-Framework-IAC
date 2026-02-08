@@ -1,6 +1,5 @@
 
 import os
-from models.vpc_models import VpcModel
 from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
 
@@ -30,20 +29,12 @@ class EcrConstructor(BaseConstructor):
             region=region,
         )
 
-    def output(self) -> VpcModel:
+    def output(self) -> dict:
         outputs = self._get_outputs()
 
-        return VpcModel(
-            vpc_id=outputs.get("VpcId"),
-            public_subnets=[
-                outputs.get("PublicSubnet1Id"),
-                outputs.get("PublicSubnet2Id"),
-            ],
-            private_subnets=[
-                outputs.get("PrivateSubnet1Id"),
-                outputs.get("PrivateSubnet2Id"),
-            ],
-        )
+        return {
+            "repository_uri": outputs.get("RepositoryUri"),
+        }
     def export_outputs_json(self):
         import json
         output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output.json")

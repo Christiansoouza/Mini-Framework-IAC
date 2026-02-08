@@ -26,5 +26,5 @@ ecr_constructor = EcrConstructor(
 )
 
 ecr_constructor.deploy()
-ecr_constructor.output()
 ecr_constructor.export_outputs_json()
+pass
