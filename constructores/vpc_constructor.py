@@ -49,8 +49,19 @@ class VpcConstructor(BaseConstructor):
         )
     def export_outputs_json(self):
         import json
-        
         output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output.json")
+        # Carrega o arquivo se existir
+        if os.path.exists(output_path):
+            with open(output_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except Exception:
+                    data = {}
+        else:
+            data = {}
+
+        data[self.name] = self.output()
+
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(self.output(), f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"💾 Outputs salvos em {output_path}")
