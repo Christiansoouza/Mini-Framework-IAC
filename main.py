@@ -1,5 +1,6 @@
 from constructores.ecs_constructor import EcsConstructor
 from constructores.vpc_constructor import VpcConstructor
+from constructores.ecr_constructor import EcrConstructor
 
 
 
@@ -18,11 +19,12 @@ desired_count = 1
 
 # ecs.plan()
 # pass
-vpc = VpcConstructor(
-    name="vpc-stack-preview2",
+ecr_constructor = EcrConstructor(
+    name="ecr-repository",
     profile=profile,
-    region=region,
+    region=region
 )
 
-vpc.deploy()
-pass
+ecr_constructor.deploy()
+ecr_constructor.output()
+ecr_constructor.export_outputs_json()

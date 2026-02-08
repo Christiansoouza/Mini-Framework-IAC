@@ -34,16 +34,24 @@ class BaseConstructor(ABC):
     def __stack_exists(self) -> bool:
         try:
             resp = self.cf_client.describe_stacks(StackName=self.name)
+            
+			# Verifica se o stack está em processo de revisão (ex: falha de criação) e trata como inexistente
             status = resp["Stacks"][0]["StackStatus"]
             if status == "DELETE_COMPLETE":
                 return False
+            # Tratar stacks em REVIEW_IN_PROGRESS como inexistentes para permitir re-criação automática
+            if status == "REVIEW_IN_PROGRESS":
+                print("⚠️ Stack em REVIEW_IN_PROGRESS detectado. Excluindo automaticamente...")
+                self.cf_client.delete_stack(StackName=self.name)
+                return False
+            
             return True
         except ClientError as e:
             if "does not exist" in str(e):
                 return False
             raise
 
-    def __get_outputs(self) -> dict:
+    def _get_outputs(self) -> dict:
         resp = self.cf_client.describe_stacks(StackName=self.name)
         outputs = resp["Stacks"][0].get("Outputs", [])
 
@@ -89,6 +97,7 @@ class BaseConstructor(ABC):
                 line += f" | Replacement={r.get('Replacement', 'N/A')}"
 
             print(line)
+
 
 
     def plan(self):
@@ -159,7 +168,7 @@ class BaseConstructor(ABC):
         waiter.wait(StackName=self.name)
         print("✅ Deploy concluído com sucesso")
 
-        outputs = self.__get_outputs()
+        outputs = self._get_outputs()
         print("📦 Outputs gerados:", outputs)
 
         return outputs
