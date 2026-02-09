@@ -67,6 +67,19 @@ Parameters:
     Default: 'LINUX'
     Description: The operating system for the task
     AllowedValues: ['LINUX', 'WINDOWS_SERVER_2019_FULL', 'WINDOWS_SERVER_2019_CORE', 'WINDOWS_SERVER_2022_FULL', 'WINDOWS_SERVER_2022_CORE']
+
+  RdsEndpoint:
+    Type: String
+    Description: Endpoint do RDS PostgreSQL
+
+  RdsDbName:
+    Type: String
+    Default: metabase
+    Description: Nome do banco de dados
+
+  DatabaseSecretArn:
+    Type: String
+    Description: ARN do secret com username/password do banco
 Resources:
   #Auto Scaling Role para o ECS Service
   ECSServiceAutoScalingRole:
@@ -81,6 +94,29 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: AllowSecretsManager
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref DatabaseSecretArn
 
   ECSServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -117,7 +153,8 @@ Resources:
         AwsvpcConfiguration:
           Subnets: !Ref SubnetIds
           SecurityGroups: !Ref SecurityGroupIds
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
+
           
   #Definição do cluster        
   ECSCluster:
@@ -129,42 +166,46 @@ Resources:
   ECSTaskDefinition:
     Type: 'AWS::ECS::TaskDefinition'
     Properties:
-        Family: !Sub '${TaskFamily}-${Environment}'
-        Cpu: !Ref ContainerCpu
-        Memory: !Ref ContainerMemory
-        NetworkMode: !Ref NetworkMode
-        RequiresCompatibilities:
-          - FARGATE
-        ExecutionRoleArn: !Ref ExecutionRoleArn
-        RuntimePlatform:
-          OperatingSystemFamily: !Ref OperatingSystemFamily
-        ContainerDefinitions:
-          - Name: !Ref ContainerName
-            Image: !Ref ContainerImage
-            Essential: true
-            PortMappings:
-              - ContainerPort: !Ref ContainerPort
-                HostPort: !Ref HostPort
-                Protocol: tcp
-            Environment:
-              - Name: MB_DB_TYPE
-                Value: postgres
-              - Name: MB_DB_HOST
-                Value: <RDS_ENDPOINT>
-              - Name: MB_DB_PORT
-                Value: '5432'
-              - Name: MB_DB_USER
-                Value: <RDS_USER>
-              - Name: MB_DB_PASS
-                Value: <RDS_PASSWORD>
-              - Name: MB_DB_DBNAME
-                Value: <RDS_DBNAME>
-            LogConfiguration:
-              LogDriver: awslogs
-              Options:
-                  awslogs-group: !Sub '${LogGroup}-${Environment}'
-                  awslogs-region: !Ref AWS::Region
-                  awslogs-stream-prefix: metabase
+      Family: !Sub '${TaskFamily}-${Environment}'
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: !Ref ContainerName
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+              Protocol: tcp
+
+          Environment:
+            - Name: MB_DB_TYPE
+              Value: postgres
+            - Name: MB_DB_HOST
+              Value: !Ref RdsEndpoint
+            - Name: MB_DB_PORT
+              Value: '5432'
+            - Name: MB_DB_DBNAME
+              Value: !Ref RdsDbName
+
+          Secrets:
+            - Name: MB_DB_USER
+              ValueFrom: !Sub '${DatabaseSecretArn}:username::'
+            - Name: MB_DB_PASS
+              ValueFrom: !Sub '${DatabaseSecretArn}:password::'
+
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub '${LogGroup}-${Environment}'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: metabase
+
 Outputs:
   TaskDefinitionArn:
     Description: The ARN of the created task definition

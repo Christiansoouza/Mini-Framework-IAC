@@ -1,0 +1,26 @@
+ECSSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: >
+      Security Group do ECS (Metabase).
+      Permite receber tráfego HTTP do ALB
+      e sair para internet/RDS.
+    VpcId: !Ref VpcId
+
+    # 🔽 ENTRADA (quem pode falar com o ECS)
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 3000
+        ToPort: 3000
+        SourceSecurityGroupId: !Ref ALBSecurityGroup
+        Description: >
+          Permite que o ALB acesse o Metabase
+          na porta 3000
+
+    # 🔼 SAÍDA (para onde o ECS pode falar)
+    SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+        Description: >
+          Permite que o ECS acesse qualquer destino,
+          inclusive o RDS na porta 5432

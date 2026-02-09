@@ -27,3 +27,21 @@ desired_count = 1
 
 # ecr_constructor.destroy()
 # pass
+
+
+# vpc = VpcConstructor(
+#     name="vpc-stack-preview",
+#     profile=profile,
+#     region=region
+# )
+# vpc.deploy()
+
+
+ecr_constructor = EcrConstructor(
+    name="ecr-repository",
+    profile=profile,
+    region=region
+)
+
+ecr_constructor.deploy()
+ecr_constructor.export_outputs_json()

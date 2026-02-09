@@ -1,80 +1,100 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: RDS PostgreSQL Instance (CloudFormation)
+AWSTemplateFormatVersion: "2010-09-09"
+Description: RDS PostgreSQL + Secret Manager para Metabase
 
-# Parâmetros para customização
 Parameters:
-  DBInstanceClass:
-    Type: String
-    Default: db.t3.micro
-    Description: Classe da instância RDS
-  DBName:
-    Type: String
-    Default: mydb
-    Description: Nome do banco de dados
   DBUser:
     Type: String
-    Default: admin
-    Description: Usuário master
+    Description: Nome do usuário do banco
+
   DBPassword:
     Type: String
     NoEcho: true
-    Default: adminpassword
-    Description: Senha master
-  DBAllocatedStorage:
-    Type: Number
-    Default: 20
-    Description: Armazenamento (GB)
+    Description: Senha do banco
+
+  DBName:
+    Type: String
+    Default: metabase
+    Description: Nome do banco
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Description: VPC para o RDS
-  SubnetIds:
+
+  PrivateSubnets:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: Subnets privadas para o RDS
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
 
 Resources:
+
+  ## 🔐 Security Group do RDS
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enable access for ECS
+      GroupDescription: Acesso Postgres apenas do ECS
       VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          CidrIp: 10.0.0.0/16 # Ajuste conforme sua arquitetura
 
+  RDSSGIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RDSSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref ECSSecurityGroup
+
+  ## 📦 Subnet Group
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: Subnet group for RDS
-      SubnetIds: !Ref SubnetIds
+      DBSubnetGroupDescription: Subnets privadas
+      SubnetIds: !Ref PrivateSubnets
 
-  RDSInstance:
+  ## 🗄️ RDS
+  MetabaseDB:
     Type: AWS::RDS::DBInstance
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
-      DBInstanceClass: !Ref DBInstanceClass
+      DBInstanceIdentifier: metabase-db
       Engine: postgres
+      EngineVersion: "15.14"
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: 20
+
       DBName: !Ref DBName
       MasterUsername: !Ref DBUser
       MasterUserPassword: !Ref DBPassword
-      AllocatedStorage: !Ref DBAllocatedStorage
+
       VPCSecurityGroups:
         - !Ref RDSSecurityGroup
+
       DBSubnetGroupName: !Ref DBSubnetGroup
       PubliclyAccessible: false
-      MultiAZ: false
       BackupRetentionPeriod: 7
-      StorageEncrypted: true
+      MultiAZ: false
+      DeletionProtection: false
+
+  ## 🔐 Secret Manager (fonte da verdade)
+  MetabaseDBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: metabase/db
+      Description: Credenciais do banco Metabase
+      SecretString: !Sub |
+        {
+          "username": "${DBUser}",
+          "password": "${DBPassword}",
+          "host": "${MetabaseDB.Endpoint.Address}",
+          "port": 5432,
+          "dbname": "${DBName}"
+        }
 
 Outputs:
-  RDSInstanceEndpoint:
-    Description: Endpoint do banco de dados
-    Value: !GetAtt RDSInstance.Endpoint.Address
-  RDSInstancePort:
-    Description: Porta do banco de dados
-    Value: !GetAtt RDSInstance.Endpoint.Port
-  RDSSecurityGroupId:
-    Description: ID do Security Group do RDS
-    Value: !Ref RDSSecurityGroup
+  DatabaseSecretArn:
+    Description: ARN do Secret do banco
+    Value: !Ref MetabaseDBSecret
+    Export:
+      Name: Metabase-DbSecretArn
