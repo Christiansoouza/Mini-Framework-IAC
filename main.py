@@ -19,11 +19,11 @@ desired_count = 1
 
 # ecs.plan()
 # pass
-ecr_constructor = EcrConstructor(
-    name="ecr-repository",
-    profile=profile,
-    region=region
-)
+# ecr_constructor = EcrConstructor(
+#     name="ecr-repository",
+#     profile=profile,
+#     region=region
+# )
 
-ecr_constructor.destroy()
-pass
+# ecr_constructor.destroy()
+# pass
