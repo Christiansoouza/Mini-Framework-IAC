@@ -4,7 +4,6 @@ from constructores.vpc_constructor import VpcConstructor
 from constructores.ecr_constructor import EcrConstructor
 from constructores.rds_constructor import RdsConstructor
 from constructores.sgs_constructor import SGSConstructor
-from constructores.execute_constructor import ExecuteConstructor
 from variables.variables import (
     ecs_variables,
     vpc_variables,
@@ -14,6 +13,12 @@ from variables.variables import (
     sgs_rds_variables,
     ecr_variables
 )
+
+
+PROFILE = "contapessoalatualizada"
+REGION = "us-east-1"
+
+
 
 constructor_map = {
     "ecs": EcsConstructor,
@@ -26,24 +31,37 @@ constructor_map = {
     "vpc-endpoint": VpcConstructor,  # ou outra classe
 }
 
-def executor(variables, constructor_key):
+def executor(variables:dict, constructor_key:str, profile:str, region:str):
     constructor_class = constructor_map[constructor_key]
     try:
         print(f"Executando stack: {variables['stack_name']}")
         constructor = constructor_class(
             name=variables['stack_name'],
+            profile=profile,
+            region=region,
             template_path=variables['template_path'],
-            parameters=variables.get('parameters', {}),
-            # outros argumentos...
+            parameters=variables.get('parameters', {})
         )
         constructor.deploy()
     except Exception as e:
         print(f"Erro ao executar {variables['stack_name']}: {e}")
 
-profile = "contapessoalatualizada"
-region = "us-east-1"
-name = "ecs-cluster"
-desired_count = 1
+def run_all():
+    stacks = [
+        (ecs_variables, "ecs"),
+        (vpc_variables, "vpc"),
+        (rds_variables, "rds"),
+        (sgs_alb_variables, "sgs-alb"),
+        (sgs_ecs_variables, "sgs-ecs"),
+        (sgs_rds_variables, "sgs-rds"),
+        (ecr_variables, "ecr")
+    ]
+
+    for vars, key in stacks:
+        executor(vars, key, PROFILE, REGION)
+
+def run():
+        executor(rds_variables, "rds", PROFILE, REGION)
 
 
 # ecs = EcsConstructor(
@@ -87,21 +105,21 @@ desired_count = 1
 # print("DATABASE_PASSWORD:", os.getenv("DATABASE_PASSWORD"))
 # print("DATABASE_NAME:", os.getenv("DATABASE_NAME"))
 
-rds_constructor = RdsConstructor(
-    name="rds-stack-preview",
-    profile=profile,
-    region=region,
-    parameters={
-        "DBUser": os.getenv("DATABASE_USER"),
-        "DBPassword": os.getenv("DATABASE_PASSWORD"),
-        "DBName": os.getenv("DATABASE_NAME"),
-        "VpcId": "vpc-0ca2dd29eb23bc02d",
-        "PrivateSubnets": ["subnet-07b5e4eea26504a2d", "subnet-08437a2c2e38d53da"],
-        "ECSSecurityGroup": "sg-034e3df3d4a62f807"
-    }
-)
+# rds_constructor = RdsConstructor(
+#     name="rds-stack-preview",
+#     profile=profile,
+#     region=region,
+#     parameters={
+#         "DBUser": os.getenv("DATABASE_USER"),
+#         "DBPassword": os.getenv("DATABASE_PASSWORD"),
+#         "DBName": os.getenv("DATABASE_NAME"),
+#         "VpcId": "vpc-0ca2dd29eb23bc02d",
+#         "PrivateSubnets": ["subnet-07b5e4eea26504a2d", "subnet-08437a2c2e38d53da"],
+#         "ECSSecurityGroup": "sg-034e3df3d4a62f807"
+#     }
+# )
 
-rds_constructor.plan()
+# rds_constructor.plan()
 
 
 
