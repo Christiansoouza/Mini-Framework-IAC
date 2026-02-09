@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Security Group do Application Load Balancer (Metabase)
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: >
+        Security Group do ALB.
+        Recebe trafego HTTP/HTTPS da internet
+        e encaminha para o ECS.
+      VpcId: !Ref VpcId
+
+      # 🔽 ENTRADA (quem pode falar com o ALB)
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: >
+            Permite tráfego HTTP da internet
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: >
+            Permite tráfego HTTPS da internet
+
+      # 🔼 SAÍDA (para onde o ALB pode falar)
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          DestinationSecurityGroupId: !ImportValue Metabase-EcsSecurityGroup
+          Description: >
+            Encaminha tráfego do ALB para o ECS (Metabase)
+
+      Tags:
+        - Key: Project
+          Value: Metabase
+        - Key: Component
+          Value: ALB
+        - Key: Environment
+          Value: prod

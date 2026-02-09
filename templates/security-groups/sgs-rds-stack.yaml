@@ -1,0 +1,25 @@
+RDSSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: >
+      Security Group do RDS PostgreSQL.
+      Aceita conexões apenas do ECS.
+    VpcId: !Ref VpcId
+
+    # 🔽 ENTRADA (quem pode falar com o banco)
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        SourceSecurityGroupId: !Ref ECSSecurityGroup
+        Description: >
+          Permite conexão Postgres SOMENTE
+          vinda do ECS (Metabase)
+
+    # 🔼 SAÍDA (respostas do banco)
+    SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+        Description: >
+          Permite que o RDS responda
+          às conexões iniciadas
