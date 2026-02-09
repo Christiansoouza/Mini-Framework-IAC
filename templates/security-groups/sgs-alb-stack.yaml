@@ -4,7 +4,7 @@ Description: Security Group do Application Load Balancer (Metabase)
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Description: VPC onde o ALB será criado
+    Description: VPC onde o ALB sera criado
 
   Environment:
     Type: String
@@ -19,10 +19,7 @@ Resources:
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: >
-        Security Group do ALB.
-        Recebe trafego HTTP/HTTPS da internet
-        e encaminha para o ECS.
+      GroupDescription: Security Group do ALB. Recebe trafego HTTP/HTTPS da internet e encaminha para o ECS.
       VpcId: !Ref VpcId
 
       # 🔽 ENTRADA — Internet → ALB
@@ -31,22 +28,20 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-          Description: Permite tráfego HTTP da internet
+          Description: HTTP da internet
 
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-          Description: Permite tráfego HTTPS da internet
+          Description: HTTPS da internet
 
       # 🔼 SAÍDA — ALB → VPC
       # (quem controla o acesso é o SG do ECS)
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-          Description: >
-            Permite que o ALB encaminhe
-            tráfego para os targets (ECS)
+          Description: ALB para ECS
 
       Tags:
         - Key: Project

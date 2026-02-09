@@ -2,7 +2,7 @@
 
 def read_template(file_path:str):
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             return file.read()
     except FileNotFoundError:
         print(f"Arquivo de template não encontrado: {file_path}")

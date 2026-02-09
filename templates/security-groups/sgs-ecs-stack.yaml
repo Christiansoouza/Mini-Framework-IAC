@@ -1,49 +1,43 @@
-ECSSecurityGroup:
-  Type: AWS::EC2::SecurityGroup
-  Properties:
-    GroupDescription: >
-      Security Group do ECS (Metabase).
-      Recebe tráfego SOMENTE do ALB na porta 3000
-      e acessa apenas serviços necessários.
-    VpcId: !Ref VpcId
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+  Environment:
+    Type: String
+    Default: prod
+    
+Resources:
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group do ECS Metabase. Recebe trafego somente do ALB na porta 3000 e acessa apenas servicos necessarios.
+      VpcId: !Ref VpcId
 
-    # 🔽 ENTRADA — somente ALB → ECS
-    SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 3000
-        ToPort: 3000
-        SourceSecurityGroupId: !Ref ALBSecurityGroup
-        Description: >
-          Permite tráfego do ALB para o Metabase
-          exclusivamente na porta 3000
+      # ENTRADA somente ALB para ECS
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: Permite trafego do ALB para o Metabase exclusivamente na porta 3000
 
-    # 🔼 SAÍDA — somente o necessário
-    SecurityGroupEgress:
+      # SAIDA somente o necessario
+      SecurityGroupEgress:
+        # HTTPS — AWS APIs (Secrets Manager, CloudWatch, etc)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS para AWS APIs
 
-      # Postgres (RDS)
-      - IpProtocol: tcp
-        FromPort: 5432
-        ToPort: 5432
-        DestinationSecurityGroupId: !Ref RDSSecurityGroup
-        Description: >
-          Permite conexão com o RDS PostgreSQL (5432)
-
-      # HTTPS — AWS APIs (Secrets Manager, CloudWatch, etc)
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 0.0.0.0/0
-        Description: >
-          Permite acesso HTTPS para AWS APIs
-          (Secrets Manager, Logs, etc)
-
-    Tags:
-      - Key: Project
-        Value: Metabase
-      - Key: Component
-        Value: ECS
-      - Key: Environment
-        Value: prod
+      Tags:
+        - Key: Project
+          Value: Metabase
+        - Key: Component
+          Value: ECS
+        - Key: Environment
+          Value: prod
 
 
 Outputs:
