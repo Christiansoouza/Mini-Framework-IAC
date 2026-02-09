@@ -25,6 +25,5 @@ ecr_constructor = EcrConstructor(
     region=region
 )
 
-ecr_constructor.deploy()
-ecr_constructor.export_outputs_json()
+ecr_constructor.destroy()
 pass
