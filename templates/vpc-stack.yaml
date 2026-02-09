@@ -128,7 +128,6 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
 
 
-
 Outputs:
   VpcId:
     Description: VPC criada

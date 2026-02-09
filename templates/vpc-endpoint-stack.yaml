@@ -1,0 +1,33 @@
+Parameters:
+  ECSSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  
+
+SecretsManagerVPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcId: !Ref VpcId
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+    VpcEndpointType: Interface
+    SubnetIds: !Ref SubnetIds
+    SecurityGroupIds:
+      - !Ref ECSSecurityGroupId
+    PrivateDnsEnabled: true
+
+
+EndpointSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    VpcId: !Ref VpcId
+    GroupDescription: SG do VPC Endpoint Secrets Manager
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        SourceSecurityGroupId: !Ref ECSSecurityGroupId
