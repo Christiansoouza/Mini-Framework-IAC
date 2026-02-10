@@ -2,20 +2,21 @@ from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
 import os
 
-TEMPLATE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "templates",
-    "security-groups",
-    "sgs-rds-stack.yaml"
-)
 
 class SGSConstructor(BaseConstructor):
     """
     Construtor para Security Groups (ALB, ECS, RDS) via CloudFormation.
     """
-    def __init__(self, name, profile, region, parameters=None):
+    def __init__(
+            self,
+            template_path:str,
+            name: str, 
+            profile: str, 
+            region: str, 
+            parameters: dict = {}
+        ):
         print(f"Inicializando SGSConstructor: {name} na região {region} com perfil {profile}")
-        template_body = read_template(TEMPLATE_PATH)
+        template_body = read_template(template_path)
         super().__init__(
             name=name,
             template_body=template_body,

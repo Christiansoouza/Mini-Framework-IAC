@@ -1,4 +1,5 @@
-import os
+from typing import Literal
+from constructores.base_constructor import BaseConstructor
 from constructores.ecs_constructor import EcsConstructor
 from constructores.vpc_constructor import VpcConstructor
 from constructores.ecr_constructor import EcrConstructor
@@ -31,10 +32,25 @@ constructor_map = {
     "vpc-endpoint": VpcConstructor,  # ou outra classe
 }
 
-def executor(variables:dict, constructor_key:str, profile:str, region:str):
+
+            
+
+def executor(variables:dict, constructor_key:str, profile:str, region:str, action:Literal["deploy","plan"] = "plan"):
+
+    def action_executor(action:Literal["deploy","plan"], constructor:BaseConstructor):
+        match action:
+            case "deploy":
+                constructor.deploy()
+                constructor.export_outputs_json()
+            case "plan":
+                constructor.plan()
+            case _:
+                raise ValueError(f"Ação '{action}' não suportada. Use 'deploy' ou 'plan'.")
+            
     constructor_class = constructor_map[constructor_key]
+
     try:
-        print(f"Executando stack: {variables['stack_name']}")
+        print(f"Executando stack: {variables['stack_name']} ({action})")
         constructor = constructor_class(
             name=variables['stack_name'],
             profile=profile,
@@ -42,7 +58,9 @@ def executor(variables:dict, constructor_key:str, profile:str, region:str):
             template_path=variables['template_path'],
             parameters=variables.get('parameters', {})
         )
-        constructor.deploy()
+
+        action_executor(action, constructor)
+
     except Exception as e:
         print(f"Erro ao executar {variables['stack_name']}: {e}")
 
@@ -58,11 +76,13 @@ def run_all():
     ]
 
     for vars, key in stacks:
-        executor(vars, key, PROFILE, REGION)
+        executor(vars, key, PROFILE, REGION, action="deploy")
 
 def run():
-        executor(rds_variables, "rds", PROFILE, REGION)
+    executor(rds_variables, "rds", PROFILE, REGION, "deploy")
 
+def plan():
+    executor(rds_variables, "rds", PROFILE, REGION, "plan")
 
 # ecs = EcsConstructor(
 #     name=name,
@@ -160,3 +180,6 @@ def run():
 
 # sgs_constructor.deploy()
 # sgs_constructor.export_outputs_json()
+
+if __name__ == "__main__":
+    run()

@@ -4,23 +4,17 @@ from models.vpc_models import VpcModel
 from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
 
-TEMPLATE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "templates",
-    "vpc-stack.yaml"
-)
-
-
 class VpcConstructor(BaseConstructor):
     def __init__(
         self,
+        template_path:str,
         name: str,
         profile: str,
         region: str,
         parameters: dict = {},
     ):
         print(f"Inicializando construtor VPC: {name} na região {region} com perfil {profile}")
-        template = read_template(TEMPLATE_PATH)
+        template = read_template(template_path)
 
         super().__init__(
             name=name,
@@ -29,36 +23,3 @@ class VpcConstructor(BaseConstructor):
             profile=profile,
             region=region,
         )
-
-    def output(self) -> VpcModel:
-        outputs = self._get_outputs()
-
-        return VpcModel(
-            vpc_id=outputs.get("VpcId"),
-            public_subnets=[
-                outputs.get("PublicSubnet1Id"),
-                outputs.get("PublicSubnet2Id"),
-            ],
-            private_subnets=[
-                outputs.get("PrivateSubnet1Id"),
-                outputs.get("PrivateSubnet2Id"),
-            ],
-        )
-    def export_outputs_json(self):
-        import json
-        output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output.json")
-        # Carrega o arquivo se existir
-        if os.path.exists(output_path):
-            with open(output_path, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f)
-                except Exception:
-                    data = {}
-        else:
-            data = {}
-
-        data[self.name] = self.output()
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"💾 Outputs salvos em {output_path}")

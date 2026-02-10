@@ -137,7 +137,7 @@ class BaseConstructor(ABC):
 
 
 
-    def plan(self):
+    def plan(self,deploy: bool = False):
         """Cria Change Set e exibe o plano de execução"""
         change_set_name = f"plan-{int(time.time())}"
         change_set_type = "UPDATE" if self.__stack_exists() else "CREATE"
@@ -167,6 +167,9 @@ class BaseConstructor(ABC):
 
         self.__print_changeset(changeset, show_replacement=True)
 
+        if not deploy:
+            self.cf_client.delete_change_set(StackName=self.name)
+
         return change_set_name, change_set_type
     
     def destroy_plan(self):
@@ -183,7 +186,7 @@ class BaseConstructor(ABC):
 
     def deploy(self):
         """Aplica o Change Set criando ou atualizando o stack conforme necessário e aguarda a conclusão do deploy"""
-        change_set_name, change_set_type = self.plan()
+        change_set_name, change_set_type = self.plan(deploy=True)
 
         if not change_set_name:
             print("🚫 Nada para aplicar")
@@ -230,14 +233,36 @@ class BaseConstructor(ABC):
     # Métodos obrigatórios
     # =========================
 
-    @abstractmethod
+
+    
     def output(self):
-        """Retorna informações relevantes do recurso criado"""
-        pass
+        """Retorna os outputs do stack como um dicionário simples {OutputKey: OutputValue}"""
+        try:
+            resp = self.cf_client.describe_stacks(StackName=self.name)
+            outputs = resp["Stacks"][0].get("Outputs", [])
+            return {item["OutputKey"]: item["OutputValue"] for item in outputs}
+        except Exception as e:
+            print(f"Erro ao obter outputs do stack {self.name}: {e}")
+            return {}
 
-    @abstractmethod
     def export_outputs_json(self):
-        """Exporta os outputs para um formato consumível por outros construtores"""
-        pass
+        """Exporta os outputs para um arquivo JSON de forma cumulativa"""
+        import os
+        import json
+        output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output.json")
+        # Carrega o arquivo se existir
+        if os.path.exists(output_path):
+            with open(output_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except Exception:
+                    data = {}
+        else:
+            data = {}
 
+        data[self.name] = self.output()
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"💾 Outputs salvos em {output_path}")
 
