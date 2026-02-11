@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security Group para acesso externo a todos os recursos privados na VPC
+Parameters:
+  VpcId:
+    Type: String
+    Description: VPC onde os SGs serão criados
+  PrivateAccessPort:
+    Type: Number
+    Default: 5432
+    Description: Porta de acesso aos recursos privados
+Resources:
+  PrivateSubnetSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: private-subnet-sg
+      GroupDescription: SG para recursos privados com acesso externo
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref PrivateAccessPort
+          ToPort: !Ref PrivateAccessPort
+          CidrIp: 0.0.0.0/0 # Libera acesso externo para todos
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+Outputs:
+  PrivateSubnetSGId:
+    Description: ID do Security Group de recursos privados
+    Value: !Ref PrivateSubnetSG

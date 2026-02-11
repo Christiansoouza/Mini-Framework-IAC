@@ -1,3 +1,12 @@
+S3VPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcId: !Ref VpcId
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+    VpcEndpointType: Gateway
+    RouteTableIds:
+      - !Select [0, !Ref SubnetIds]
+      # Adicione outras RouteTables se necessário
 Parameters:
   ECSSecurityGroupId:
     Type: AWS::EC2::SecurityGroup::Id
