@@ -78,23 +78,27 @@ Resources:
       DeletionProtection: false
 
   ## 🔐 Secret Manager (fonte da verdade)
-  MetabaseDBSecret:
+  MetabaseDBUserSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: metabase/db
-      Description: Credenciais do banco Metabase
-      SecretString: !Sub |
-        {
-          "username": "${DBUser}",
-          "password": "${DBPassword}",
-          "host": "${MetabaseDB.Endpoint.Address}",
-          "port": 5432,
-          "dbname": "${DBName}"
-        }
+      Name: metabase/db-username
+      SecretString: !Ref DBUser
+      
+  MetabaseDBPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: metabase/db-password
+      SecretString: !Ref DBPassword
 
 Outputs:
-  DatabaseSecretArn:
-    Description: ARN do Secret do banco
-    Value: !Ref MetabaseDBSecret
+  DatabaseUserSecretArn:
+    Description: ARN do Secret do usuário do banco
+    Value: !Ref MetabaseDBUserSecret
     Export:
-      Name: Metabase-DbSecretArn
+      Name: Metabase-DbUserSecretArn
+
+  DatabasePasswordSecretArn:
+    Description: ARN do Secret da senha do banco
+    Value: !Ref MetabaseDBPasswordSecret
+    Export:
+      Name: Metabase-DbPasswordSecretArn

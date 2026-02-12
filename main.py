@@ -80,11 +80,10 @@ def run_all():
         executor(vars, key, PROFILE, REGION, action="deploy")
 
 def run():
-    executor(rds_variables, "rds", PROFILE, REGION, "deploy")
+    executor(ecs_variables, "ecs", PROFILE, REGION, "deploy")
 
 def plan():
-    executor(rds_variables, "rds", PROFILE, REGION, "plan")
-
+    executor(ecs_variables, "ecs", PROFILE, REGION, "plan")
 
 if __name__ == "__main__":
-    create_instance_restore()
+    run()

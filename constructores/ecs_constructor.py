@@ -10,21 +10,17 @@ class EcsConstructor(BaseConstructor):
         name: str,
         profile: str,
         region: str,
-        desired_count: int = 2,
+        parameters: dict = {},
     ):
         print(f"Inicializando construtor ECS: {name} na região {region} com perfil {profile}")
         template = read_template(template_path)
 
 
-        params = {
-            "ClusterName": name,
-            "DesiredCount": desired_count,
-        }
 
         super().__init__(
             name=name,
             template_body=template,
-            parameters=params,
+            parameters=parameters,
             profile=profile,
             region=region,
         )

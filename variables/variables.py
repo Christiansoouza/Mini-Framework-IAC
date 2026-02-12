@@ -12,8 +12,23 @@ ecs_variables = {
     "stack_name": "ecs-stack-preview",
     "template_path": os.path.join(PATH_TEMPLATES, "ecs-stack.yaml"),
     "parameters": {
-        "ClusterName": "ecs-cluster-preview",
-        "DesiredCount": 2,
+        "VpcId": "vpc-0ca2dd29eb23bc02d",
+        "SubnetIds": "subnet-07b5e4eea26504a2d,subnet-08437a2c2e38d53da",
+        "SecurityGroupIds": "sg-034e3df3d4a62f807",
+        "ContainerImage": "484907521567.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:latest",
+        "ContainerCpu": 1024,
+        "ContainerMemory": 2048,
+        "TaskFamily": "metabase-task",
+        "ContainerName": "metabase",
+        "ContainerPort": 3000,
+        "Environment": "prod",
+        "NetworkMode": "awsvpc",
+        "OperatingSystemFamily": "LINUX",
+        "RdsEndpoint": "metabase-db.copgisqwgh9a.us-east-1.rds.amazonaws.com",
+        "RdsDbName": "metabase",
+        "DatabaseSecretArn": "arn:aws:secretsmanager:us-east-1:484907521567:secret:metabase/db-bAct6K",
+        "MaxTaskCount": 4,
+        "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:484907521567:targetgroup/metabasegroup/3edcb409d9f80e17"
     }
 }
 

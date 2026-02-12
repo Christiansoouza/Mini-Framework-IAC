@@ -3,113 +3,113 @@ import os
 import time
 import botocore
 from botocore.exceptions import ClientError
+from utils.read_json_file import read_json_file
+
+data = read_json_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output.json'))
 
 
 # Dados do RDS
-DB_HOST = "metabase-db.copgisqwgh9a.us-east-1.rds.amazonaws.com"  # Exemplo: metabase-db.xxxxxxxx.region.rds.amazonaws.com
+DB_HOST = data.get("endpoint") # Exemplo: metabase-db.xxxxxxxx.region.rds.amazonaws.com DB_PORT = os.getenv('DATABASE_PORT') DB_USER = os.getenv('DATABASE_USER') DB_PASSWORD = os.getenv('DATABASE_PASSWORD') DB_NAME = os.getenv('DATABASE_NAME') BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'metabase_backup.sql') VPC_ID = 'vpc-0ca2dd29eb23bc02d' RDS_SG_ID = 'sg-034e3df3d4a62f807'
+RDS_SG_ID = data.get("sgs-rds-stack-preview")  # ID do Security Group do RDS
+VPC_ID = data.get("vpc-stack-preview")  # ID da VPC
+
+profile_name = "contapessoalatualizada"  
+region = "us-east-1" 
+
+
+BUCKET_NAME =os.getenv('BUCKET_NAME', 'metabase-backups-chris-20260211')
+ROLE_NAME =  os.getenv('ROLE_NAME', 'EC2-S3-Backup-Role')
+POLICY_NAME = os.getenv('POLICY_NAME', 'S3-Read-Metabase-Backup')
+S3_KEY = os.getenv('S3_KEY', 'backups/metabase_backup.sql')
+BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'metabase_backup.sql')
+
 DB_PORT = os.getenv('DATABASE_PORT', '5432')
 DB_USER = os.getenv('DATABASE_USER', 'metabase_user')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD','Metabase2026!#')
 DB_NAME = os.getenv('DATABASE_NAME','metabase')
-BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'metabase_backup.sql')
-VPC_ID = 'vpc-0ca2dd29eb23bc02d'
-RDS_SG_ID = 'sg-034e3df3d4a62f807'  
 
-profile_name = "contapessoalatualizada"  
-region = "us-east-1" 
-S3_KEY = "backups/metabase_backup.sql"
 session = boto3.Session(profile_name=profile_name, region_name=region)
-
-BUCKET_NAME = "metabase-backups-chris-20260211"
-ROLE_NAME = "EC2-S3-Backup-Role"
-POLICY_NAME = "S3-Read-Metabase-Backup"
-
-
-
-
-
-
 
 import boto3
 import json
 import time
 
 
-# def create_policy_and_role():
-#     iam = session.client("iam")
+def create_policy_and_role():
+    iam = session.client("iam")
 
-#     # 1️⃣ Criar Policy
-#     policy_document = {
-#         "Version": "2012-10-17",
-#         "Statement": [
-#             {
-#                 "Effect": "Allow",
-#                 "Action": ["s3:GetObject"],
-#                 "Resource": f"arn:aws:s3:::{BUCKET_NAME}/*"
-#             }
-#         ]
-#     }
+    # 1️⃣ Criar Policy
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject"],
+                "Resource": f"arn:aws:s3:::{BUCKET_NAME}/*"
+            }
+        ]
+    }
 
-#     try:
-#         response = iam.create_policy(
-#             PolicyName=POLICY_NAME,
-#             PolicyDocument=json.dumps(policy_document)
-#         )
-#         policy_arn = response["Policy"]["Arn"]
-#         print("✅ Policy criada")
-#     except iam.exceptions.EntityAlreadyExistsException:
-#         policy_arn = f"arn:aws:iam::{boto3.client('sts').get_caller_identity()['Account']}:policy/{POLICY_NAME}"
-#         print("⚠️ Policy já existe")
+    try:
+        response = iam.create_policy(
+            PolicyName=POLICY_NAME,
+            PolicyDocument=json.dumps(policy_document)
+        )
+        policy_arn = response["Policy"]["Arn"]
+        print("✅ Policy criada")
+    except iam.exceptions.EntityAlreadyExistsException:
+        policy_arn = f"arn:aws:iam::{boto3.client('sts').get_caller_identity()['Account']}:policy/{POLICY_NAME}"
+        print("⚠️ Policy já existe")
 
-#     # 2️⃣ Criar Role
-#     assume_role_policy = {
-#         "Version": "2012-10-17",
-#         "Statement": [
-#             {
-#                 "Effect": "Allow",
-#                 "Principal": {"Service": "ec2.amazonaws.com"},
-#                 "Action": "sts:AssumeRole"
-#             }
-#         ]
-#     }
+    # 2️⃣ Criar Role
+    assume_role_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"Service": "ec2.amazonaws.com"},
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
 
-#     try:
-#         iam.create_role(
-#             RoleName=ROLE_NAME,
-#             AssumeRolePolicyDocument=json.dumps(assume_role_policy)
-#         )
-#         print("✅ Role criada")
-#     except iam.exceptions.EntityAlreadyExistsException:
-#         print("⚠️ Role já existe")
+    try:
+        iam.create_role(
+            RoleName=ROLE_NAME,
+            AssumeRolePolicyDocument=json.dumps(assume_role_policy)
+        )
+        print("✅ Role criada")
+    except iam.exceptions.EntityAlreadyExistsException:
+        print("⚠️ Role já existe")
 
-#     # 3️⃣ Anexar Policy na Role
-#     iam.attach_role_policy(
-#         RoleName=ROLE_NAME,
-#         PolicyArn=policy_arn
-#     )
-#     print("✅ Policy anexada na Role")
+    # 3️⃣ Anexar Policy na Role
+    iam.attach_role_policy(
+        RoleName=ROLE_NAME,
+        PolicyArn=policy_arn
+    )
+    print("✅ Policy anexada na Role")
 
-#     # 4️⃣ Criar Instance Profile
-#     try:
-#         iam.create_instance_profile(InstanceProfileName=ROLE_NAME)
-#         print("✅ Instance Profile criado")
-#     except iam.exceptions.EntityAlreadyExistsException:
-#         print("⚠️ Instance Profile já existe")
+    # 4️⃣ Criar Instance Profile
+    try:
+        iam.create_instance_profile(InstanceProfileName=ROLE_NAME)
+        print("✅ Instance Profile criado")
+    except iam.exceptions.EntityAlreadyExistsException:
+        print("⚠️ Instance Profile já existe")
 
-#     # Pequena espera (IAM demora alguns segundos)
-#     time.sleep(5)
+    # Pequena espera (IAM demora alguns segundos)
+    time.sleep(5)
 
-#     # 5️⃣ Adicionar Role ao Instance Profile
-#     try:
-#         iam.add_role_to_instance_profile(
-#             InstanceProfileName=ROLE_NAME,
-#             RoleName=ROLE_NAME
-#         )
-#         print("✅ Role associada ao Instance Profile")
-#     except Exception:
-#         print("⚠️ Role já associada")
+    # 5️⃣ Adicionar Role ao Instance Profile
+    try:
+        iam.add_role_to_instance_profile(
+            InstanceProfileName=ROLE_NAME,
+            RoleName=ROLE_NAME
+        )
+        print("✅ Role associada ao Instance Profile")
+    except Exception:
+        print("⚠️ Role já associada")
 
-#     print("🎯 IAM configurado com sucesso!")
+    print("🎯 IAM configurado com sucesso!")
 
 
 
@@ -337,11 +337,11 @@ def create_instance_restore():
     instance.reload()
     public_dns = instance.public_dns_name
     ip_address = instance.public_ip_address
+    ip_address = instance.private_ip_address if not ip_address else ip_address
     
     if not ip_address:
         print('Atenção: A instância EC2 não recebeu IP público. Verifique se a subnet permite IP público ou ajuste a configuração.')
     else:
-        change_sgs_to_allow_ec2_access(ip_address)
         print(f'Instância iniciada: {public_dns} ({ip_address})')
     create_bucket_if_not_exists(BUCKET_NAME)
     upload_file()

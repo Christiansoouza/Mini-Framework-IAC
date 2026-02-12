@@ -168,7 +168,7 @@ class BaseConstructor(ABC):
         self.__print_changeset(changeset, show_replacement=True)
 
         if not deploy:
-            self.cf_client.delete_change_set(StackName=self.name)
+            self.cf_client.delete_change_set(StackName=self.name, ChangeSetName=change_set_name)
 
         return change_set_name, change_set_type
     
