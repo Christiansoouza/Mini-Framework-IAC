@@ -45,7 +45,7 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-          Description: ALB para ECS
+          Description: Saida para qualquer recurso dentro da vpc
 
       Tags:
         - Key: Project
@@ -57,7 +57,7 @@ Resources:
         - Key: Application
           Value: metabase
         - Key: Component
-          Value: ALB
+          Value: sgs
 
 Outputs:
 

@@ -29,14 +29,11 @@ Resources:
           SourceSecurityGroupId: !Ref ALBSecurityGroup
           Description: Permite trafego do ALB para o Metabase exclusivamente na porta 3000
 
-      # SAIDA somente o necessario
+      # SAIDA liberada (controle de acesso ao RDS é feito no SG do RDS)
       SecurityGroupEgress:
-        # HTTPS — AWS APIs (Secrets Manager, CloudWatch, etc)
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
+        - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-          Description: HTTPS para AWS APIs
+          Description: Saída liberada para qualquer destino
 
       Tags:
         - Key: Project
@@ -48,7 +45,7 @@ Resources:
         - Key: Application
           Value: metabase
         - Key: Component
-          Value: ALB
+          Value: sgs-ecs
 
 
 Outputs:

@@ -2,6 +2,18 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: RDS PostgreSQL + Secret Manager para Metabase
 
 Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - prod
+      - hml
+    Description: Ambiente da stack
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
+    
   DBUser:
     Type: String
     Description: Nome do usuário do banco
@@ -19,63 +31,56 @@ Parameters:
   DBInstanceClass:
     Type: String
     Default: db.t3.micro
-
-  VpcId:
-    Type: AWS::EC2::VPC::Id
+  
+  RDSSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: ID do Security Group já existente para o RDS
 
   PrivateSubnets:
     Type: List<AWS::EC2::Subnet::Id>
-
-  ECSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup::Id
+    Description: Lista de subnets privadas para o DBSubnetGroup
 
 Resources:
-
-  ## 🔐 Security Group do RDS
-  RDSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Acesso Postgres apenas do ECS
-      VpcId: !Ref VpcId
-
-  RDSSGIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref RDSSecurityGroup
-      IpProtocol: tcp
-      FromPort: 5432
-      ToPort: 5432
-      SourceSecurityGroupId: !Ref ECSSecurityGroup
-
   ## 📦 Subnet Group
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: Subnets privadas
+      DBSubnetGroupDescription: Subnets privadas para o RDS
       SubnetIds: !Ref PrivateSubnets
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
-  ## 🗄️ RDS
   MetabaseDB:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBInstanceIdentifier: metabase-db
+      DBInstanceIdentifier: metabase-database
       Engine: postgres
       EngineVersion: "15.14"
       DBInstanceClass: !Ref DBInstanceClass
       AllocatedStorage: 20
-
       DBName: !Ref DBName
       MasterUsername: !Ref DBUser
       MasterUserPassword: !Ref DBPassword
-
       VPCSecurityGroups:
-        - !Ref RDSSecurityGroup
-
+        - !Ref RDSSecurityGroupId
       DBSubnetGroupName: !Ref DBSubnetGroup
       PubliclyAccessible: false
-      BackupRetentionPeriod: 7
-      MultiAZ: false
+      BackupRetentionPeriod: 3
+      MultiAZ: true
       DeletionProtection: false
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: rds-secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   ## 🔐 Secret Manager (fonte da verdade)
   MetabaseDBUserSecret:
@@ -83,12 +88,41 @@ Resources:
     Properties:
       Name: metabase/db-username
       SecretString: !Ref DBUser
+      Description: Secret contendo o nome do usuario do banco de dados do Metabase
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: rds-secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
       
   MetabaseDBPasswordSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
       Name: metabase/db-password
       SecretString: !Ref DBPassword
+      Description: Secret contendo a senha do banco de dados do Metabase
+      Tags:
+      - Key: Project
+        Value: !Ref ProjectName
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Owner
+        Value: Dominitax
+      - Key: Application
+        Value: metabase
+      - Key: Component
+        Value: rds-secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
 
 Outputs:
   DatabaseUserSecretArn:

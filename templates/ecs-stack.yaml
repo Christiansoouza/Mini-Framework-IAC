@@ -2,6 +2,20 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: 'ECS Task Definition to deploy a sample app'
 
 Parameters:
+
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
+
+  Environment:
+    Type: String
+    Default: 'prod'
+    AllowedValues:
+      - prod
+      - hml
+    Description: Ambiente (prod ou hml)
+
   MaxTaskCount:
     Type: Number
     Default: 4
@@ -46,13 +60,6 @@ Parameters:
     Type: Number
     Description: Port number on the container
 
-  Environment:
-    Type: String
-    Default: 'prod'
-    AllowedValues:
-      - prod
-      - hml
-    Description: Ambiente (prod ou hml)
 
   NetworkMode:
     Type: String
@@ -75,20 +82,31 @@ Parameters:
     Default: metabase
     Description: Nome do banco de dados
 
-  DatabaseSecretArn:
-    Type: String
-    Description: ARN do secret com username/password do banco
-
   TargetGroupArn:
     Type: String
     Description: ARN do Target Group já existente
+  
+  PasswordSecretArn:
+    Type: String
+    Description: ARN do secret com a senha do banco
+
+  UsernameSecretArn:
+    Type: String
+    Description: ARN do secret com o username do banco
 
 Resources:
   ECSLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/ecs/${TaskFamily}-${Environment}'
-      RetentionInDays: 7
+      RetentionInDays: 3
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   # IAM Role para Auto Scaling
   ECSServiceAutoScalingRole:
@@ -103,6 +121,11 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
 
   # IAM Role para Task Execution
   ECSTaskExecutionRole:
@@ -126,8 +149,8 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource:
-                  - arn:aws:secretsmanager:us-east-1:484907521567:secret:metabase/db-username-77r1KD
-                  - arn:aws:secretsmanager:us-east-1:484907521567:secret:metabase/db-password-AOQrPg
+                  - !Ref UsernameSecretArn
+                  - !Ref PasswordSecretArn
 
               # Acesso ao ECR
               - Effect: Allow
@@ -137,11 +160,21 @@ Resources:
                   - ecr:GetDownloadUrlForLayer
                   - ecr:BatchGetImage
                 Resource: "*"
-        # ECS Cluster
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+                
   ECSCluster:
     Type: 'AWS::ECS::Cluster'
     Properties:
       ClusterName: !Sub 'ecs-cluster-${Environment}'
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
 
   # ECS Task Definition
   ECSTaskDefinition:
@@ -174,15 +207,20 @@ Resources:
               Value: !Ref RdsDbName
           Secrets:
             - Name: MB_DB_USER
-              ValueFrom: 'arn:aws:secretsmanager:us-east-1:484907521567:secret:metabase/db-username-77r1KD:username::'
+              ValueFrom: !Ref UsernameSecretArn
             - Name: MB_DB_PASS
-              ValueFrom: 'arn:aws:secretsmanager:us-east-1:484907521567:secret:metabase/db-password-AOQrPg:password::'
+              ValueFrom: !Ref PasswordSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Sub '/ecs/${TaskFamily}-${Environment}'
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
   # ECS Service
   ECSService:
     Type: AWS::ECS::Service
@@ -202,7 +240,17 @@ Resources:
         - TargetGroupArn: !Ref TargetGroupArn
           ContainerName: !Ref ContainerName
           ContainerPort: !Ref ContainerPort
-
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: ecs
   # Application Auto Scaling: Scalable Target
   ECSServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget

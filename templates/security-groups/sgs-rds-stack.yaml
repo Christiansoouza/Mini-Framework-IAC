@@ -8,11 +8,14 @@ Parameters:
 
   VpcId:
     Type: AWS::EC2::VPC::Id
+
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
+
   Environment:
     Type: String
     Default: prod
+    
 Resources:
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup

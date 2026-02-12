@@ -2,42 +2,58 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: ALB público para Metabase (ECS)
 
 Parameters:
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
+
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - prod
+      - hml
+    Description: Ambiente da stack
+
   VpcId:
     Type: AWS::EC2::VPC::Id
 
   PublicSubnets:
     Type: List<AWS::EC2::Subnet::Id>
 
-Resources:
+  ALBSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: ID do Security Group a ser associado ao ALB
 
-  ## 🔐 Security Group do ALB
-  ALBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Acesso HTTP ao ALB
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+Resources:
 
   ## 🌐 Load Balancer
   MetabaseALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: metabase-alb
+      Name: metabase-loadbalancer
       Scheme: internet-facing
       Type: application
       Subnets: !Ref PublicSubnets
       SecurityGroups:
-        - !Ref ALBSecurityGroup
+        - !Ref ALBSecurityGroupId
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: alb
 
   ## 🎯 Target Group (ECS)
   MetabaseTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: metabase-tg
+      Name: metabase-target-group
       VpcId: !Ref VpcId
       Port: 3000
       Protocol: HTTP
@@ -68,4 +84,4 @@ Outputs:
     Value: !Ref MetabaseTargetGroup
 
   ALBSecurityGroupId:
-    Value: !Ref ALBSecurityGroup
+    Value: !Ref ALBSecurityGroupId
