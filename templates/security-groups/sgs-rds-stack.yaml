@@ -1,4 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
+
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
+
   VpcId:
     Type: AWS::EC2::VPC::Id
   ECSSecurityGroup:
@@ -26,7 +33,18 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
           Description: Permite que o RDS responda as conexoes iniciadas
-        
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: sgs-rds
+       
 Outputs:
   RDSSecurityGroupId:
     Value: !Ref RDSSecurityGroup

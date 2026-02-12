@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Security Group do Application Load Balancer (Metabase)
 
 Parameters:
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: VPC onde o ALB sera criado
@@ -45,11 +49,15 @@ Resources:
 
       Tags:
         - Key: Project
-          Value: Metabase
-        - Key: Component
-          Value: ALB
+          Value: !Ref ProjectName
         - Key: Environment
           Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: ALB
 
 Outputs:
 

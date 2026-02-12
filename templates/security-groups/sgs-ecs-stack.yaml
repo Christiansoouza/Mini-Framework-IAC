@@ -1,4 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
+
+  ProjectName:
+    Type: String
+    Default: Metabase
+    Description: Nome do projeto
+
   VpcId:
     Type: AWS::EC2::VPC::Id
   ALBSecurityGroup:
@@ -6,8 +13,8 @@ Parameters:
   Environment:
     Type: String
     Default: prod
-    
 Resources:
+  
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -33,11 +40,15 @@ Resources:
 
       Tags:
         - Key: Project
-          Value: Metabase
-        - Key: Component
-          Value: ECS
+          Value: !Ref ProjectName
         - Key: Environment
-          Value: prod
+          Value: !Ref Environment
+        - Key: Owner
+          Value: Dominitax
+        - Key: Application
+          Value: metabase
+        - Key: Component
+          Value: ALB
 
 
 Outputs:
