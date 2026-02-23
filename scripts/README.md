@@ -31,11 +31,6 @@ Documentação dos scripts utilitários para operações e automações no proje
 - **Observações:**
   - Requer autenticação prévia no ECR.
 
-### metabase_backup.sql
-- **Descrição:** Backup SQL do Metabase.
-- **Uso:**
-  - Utilizado para restore de banco.
-
 ---
 
 ## Boas Práticas
