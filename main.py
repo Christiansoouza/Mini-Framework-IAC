@@ -36,15 +36,17 @@ constructor_map = {
 
             
 
-def executor(variables:dict, constructor_key:str, profile:str, region:str, action:Literal["deploy","plan"] = "plan"):
+def executor(variables:dict, constructor_key:str, profile:str, region:str, action:Literal["deploy","plan", "destroy"] = "plan"):
 
-    def action_executor(action:Literal["deploy","plan"], constructor:BaseConstructor):
+    def action_executor(action:Literal["deploy","plan","destroy"], constructor:BaseConstructor):
         match action:
             case "deploy":
                 constructor.deploy()
                 constructor.export_outputs_json()
             case "plan":
                 constructor.plan()
+            case "destroy":
+                constructor.destroy()
             case _:
                 raise ValueError(f"Ação '{action}' não suportada. Use 'deploy' ou 'plan'.")
             

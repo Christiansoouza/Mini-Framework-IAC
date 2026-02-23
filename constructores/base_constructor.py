@@ -228,13 +228,6 @@ class BaseConstructor(ABC):
         waiter.wait(StackName=self.name)
         print("🗑 Stack removida com sucesso")
         
-
-	# =========================
-    # Métodos obrigatórios
-    # =========================
-
-
-    
     def output(self):
         """Retorna os outputs do stack como um dicionário simples {OutputKey: OutputValue}"""
         try:
