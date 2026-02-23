@@ -1,6 +1,3 @@
-
-import os
-from models.vpc_models import VpcModel
 from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
 

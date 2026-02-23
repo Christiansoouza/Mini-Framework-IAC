@@ -1,7 +1,5 @@
-import os
-from .base_constructor import BaseConstructor
+from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
-
 
 class EcsConstructor(BaseConstructor):
     def __init__(

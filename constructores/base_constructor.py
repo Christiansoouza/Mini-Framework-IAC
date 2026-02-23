@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import time
 import boto3
 from botocore.exceptions import ClientError

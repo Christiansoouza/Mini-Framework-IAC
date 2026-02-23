@@ -1,4 +1,4 @@
-from .base_constructor import BaseConstructor
+from constructores.base_constructor import BaseConstructor
 from utils.read_template import read_template
 
 class RdsConstructor(BaseConstructor):
