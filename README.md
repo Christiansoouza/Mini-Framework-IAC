@@ -6,10 +6,6 @@
 
 Automatize a criação e gestão de recursos AWS (ECS, ECR, RDS, VPC, Security Groups) com Python e CloudFormation. Ideal para DevOps, desenvolvedores e equipes que buscam agilidade e segurança na infraestrutura.
 
-## Demonstração
-
-<img src="https://user-images.githubusercontent.com/00000000/demo.gif" alt="Demo" width="600"/>
-
 ## Funcionalidades
 
 - Provisionamento automático de:
