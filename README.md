@@ -33,6 +33,20 @@ Automatize a criação e gestão de recursos AWS (ECS, ECR, RDS, VPC, Security G
 ├── docs/
 ```
 
+## Instalação e Dependências do Poetry
+
+Para instalar o Poetry, você pode usar o seguinte comando:
+
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+Após a instalação, você pode adicionar dependências ao seu projeto com:
+
+```bash
+poetry install
+```
+
 ## Como Utilizar: Passo a Passo
 
 ### 1. Crie o template YAML
