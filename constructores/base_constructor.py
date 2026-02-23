@@ -138,7 +138,30 @@ class BaseConstructor(ABC):
 
 
     def plan(self,deploy: bool = False):
-        """Cria Change Set e exibe o plano de execução"""
+        """
+        Gera e exibe o plano de execução (Change Set) do stack CloudFormation.
+
+        Este método permite visualizar todas as mudanças que serão aplicadas ao stack antes de executar o deploy de fato.
+        Ele cria um Change Set do tipo CREATE (se o stack não existir) ou UPDATE (se já existir), exibe o plano de mudanças
+        de forma legível e, opcionalmente, executa o deploy se desejado.
+
+        Parâmetros:
+            deploy (bool):
+                - False (padrão): Apenas exibe o plano e deleta o Change Set após a visualização (modo seguro/planejamento).
+                - True: Mantém o Change Set para ser executado (usado internamente pelo método deploy).
+
+        Retorna:
+            Tuple[str, str] | Tuple[None, None]:
+                - (change_set_name, change_set_type) se houver mudanças a aplicar.
+                - (None, None) se não houver mudanças detectadas.
+
+        Exemplo de uso:
+            >>> stack.plan()  # Apenas visualizar o plano
+            >>> stack.plan(deploy=True)  # Preparar para deploy
+
+        Observação:
+            O plano é deletado automaticamente se deploy=False, evitando acúmulo de Change Sets.
+        """
         change_set_name = f"plan-{int(time.time())}"
         change_set_type = "UPDATE" if self.__stack_exists() else "CREATE"
 
@@ -185,7 +208,29 @@ class BaseConstructor(ABC):
         return True
 
     def deploy(self):
-        """Aplica o Change Set criando ou atualizando o stack conforme necessário e aguarda a conclusão do deploy"""
+        """
+        Executa o deploy do stack CloudFormation, aplicando todas as mudanças planejadas.
+
+        Este método cria ou atualiza o stack conforme necessário, executando o Change Set gerado pelo método plan().
+        Ele aguarda a conclusão do processo (CREATE ou UPDATE), exibe os outputs gerados e retorna essas informações.
+
+        Fluxo:
+            1. Gera o plano de mudanças (Change Set) e o executa.
+            2. Aguarda a finalização do deploy (criação ou atualização do stack).
+            3. Exibe e retorna os outputs do stack.
+
+        Retorna:
+            dict | None:
+                - Dicionário com os outputs do stack após o deploy.
+                - None se não houver mudanças a aplicar.
+
+        Exemplo de uso:
+            >>> outputs = stack.deploy()
+            >>> print(outputs)
+
+        Observação:
+            Caso não haja mudanças detectadas, nada será aplicado e o método retorna None.
+        """
         change_set_name, change_set_type = self.plan(deploy=True)
 
         if not change_set_name:
@@ -214,6 +259,25 @@ class BaseConstructor(ABC):
         return outputs
 
     def destroy(self):
+
+        """
+        Remove o stack CloudFormation e todos os recursos provisionados.
+
+        Este método exibe os recursos que serão destruídos, solicita confirmação do usuário e executa a remoção completa do stack.
+        Aguarda a finalização do processo e informa o sucesso da operação.
+
+        Fluxo:
+            1. Exibe os recursos existentes que serão removidos (destroy_plan).
+            2. Solicita confirmação do usuário antes de destruir.
+            3. Executa a deleção do stack e aguarda a conclusão.
+
+        Observações:
+            - Se o stack não existir, nada será feito.
+            - A confirmação impede destruições acidentais.
+
+        Exemplo de uso:
+            >>> stack.destroy()
+        """
         plan = self.destroy_plan()
 
         if not plan:
