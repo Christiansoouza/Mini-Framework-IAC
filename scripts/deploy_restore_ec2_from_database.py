@@ -2,7 +2,6 @@ import boto3
 import os
 import time
 import botocore
-from botocore.exceptions import ClientError
 from utils.read_json_file import read_json_file
 
 data = read_json_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output.json'))
@@ -13,21 +12,24 @@ DB_HOST = data.get("endpoint") # Exemplo: metabase-db.xxxxxxxx.region.rds.amazon
 RDS_SG_ID = data.get("sgs-rds-stack-preview")  # ID do Security Group do RDS
 VPC_ID = data.get("vpc-stack-preview")  # ID da VPC
 
+#Conta AWS e região
 profile_name = "contapessoalatualizada"  
 region = "us-east-1" 
 
-
+# Configurações do S3 e IAM
 BUCKET_NAME =os.getenv('BUCKET_NAME', 'metabase-backups-chris-20260211')
 ROLE_NAME =  os.getenv('ROLE_NAME', 'EC2-S3-Backup-Role')
 POLICY_NAME = os.getenv('POLICY_NAME', 'S3-Read-Metabase-Backup')
 S3_KEY = os.getenv('S3_KEY', 'backups/metabase_backup.sql')
 BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'metabase_backup.sql')
 
+# Variáveis de ambiente para o banco de dados (pode ser configurado via .env ou diretamente no ambiente)
 DB_PORT = os.getenv('DATABASE_PORT', '5432')
 DB_USER = os.getenv('DATABASE_USER', 'metabase_user')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD','Metabase2026!#')
 DB_NAME = os.getenv('DATABASE_NAME','metabase')
 
+#Sessão boto3 com perfil e região configurados
 session = boto3.Session(profile_name=profile_name, region_name=region)
 
 import boto3
