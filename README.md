@@ -37,9 +37,6 @@ Automatize a criação e gestão de recursos AWS (ECS, ECR, RDS, VPC, Security G
 ├── docs/
 ```
 
-## Como Rodar
-
-
 ## Como Utilizar: Passo a Passo
 
 ### 1. Crie o template YAML
