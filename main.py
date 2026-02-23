@@ -17,7 +17,7 @@ from variables.variables import (
 )
 
 
-PROFILE = "contapessoalatualizada"
+PROFILE = "nome da conta"
 REGION = "us-east-1"
 
 
